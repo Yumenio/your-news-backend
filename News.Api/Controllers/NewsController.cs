@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 namespace News.Api.Controllers
 {
     [ApiController]
-    [Route("/api/news/")]
+    [Route("/api/")]
     public class NewsController : Controller
     {
         private readonly AppConfiguration _config;
