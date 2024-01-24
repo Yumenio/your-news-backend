@@ -4,10 +4,12 @@
     {
         public string ApiKey { get; set; }
         public string TopHeadlinesUrl { get; set; }
-        public AppConfiguration(string apiKey, string topHeadlinesUrl)
+        public string AuthSecret { get; init; }
+        public AppConfiguration(string apiKey, string topHeadlinesUrl, string authSecret)
         {
             ApiKey = apiKey;
             TopHeadlinesUrl = topHeadlinesUrl;
+            AuthSecret = authSecret;
         }
     }
 }
