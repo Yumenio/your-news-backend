@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using News.Api.Configuration;
+using News.Api.Data;
 using News.Api.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -15,9 +16,11 @@ namespace News.Api.Controllers
     public class AuthController : Controller
     {
         private AppConfiguration _config;
-        public AuthController(AppConfiguration config)
+        private ApplicationDbContext _db;
+        public AuthController(AppConfiguration config, ApplicationDbContext db)
         {
             _config = config;
+            _db = db;
         }
         [HttpPost]
         [AllowAnonymous]
@@ -51,6 +54,15 @@ namespace News.Api.Controllers
 
             }
             return Results.Unauthorized();
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("/test")]
+        public IResult Test()
+        {
+            var usersNamedJohn = _db.Users.Where(user => user.Username == "John");
+            return Results.Ok();
         }
     }
 }
