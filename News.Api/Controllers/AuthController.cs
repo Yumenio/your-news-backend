@@ -27,7 +27,7 @@ namespace News.Api.Controllers
         [Route("/login")]
         public IResult Login(User user)
         {
-            if(user.Username == "test" && user.Password == "1234")
+            if(user.Username == "admin" && user.Password == "1234")
             {
                 var issuer = "https://your-news.com";
                 var audience = "https://your-news.com";
@@ -57,12 +57,37 @@ namespace News.Api.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
+        [Authorize]
         [Route("/test")]
         public IResult Test()
         {
+
             var usersNamedJohn = _db.Users.Where(user => user.Username == "John");
             return Results.Ok();
+        }
+
+        private bool ValidateToken(string token)
+        {
+            var key = Encoding.ASCII.GetBytes(_config.AuthSecret);
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            try
+            {
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey= true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidIssuer = "https://your-news.com",
+                    ValidateAudience = true,
+                    ValidAudience = "https://your-news.com",
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                }, out SecurityToken validatedToken);
+
+                return true;
+            }
+            catch (SecurityTokenException) { return false; }
         }
     }
 }
