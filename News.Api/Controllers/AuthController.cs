@@ -24,35 +24,20 @@ namespace News.Api.Controllers
         }
         [HttpPost]
         [AllowAnonymous]
-        [Route("/login")]
+        [Route("login")]
         public IResult Login(User user)
         {
-            if(user.Username == "admin" && user.Password == "1234")
+            if (user == null)
             {
-                var issuer = "https://your-news.com";
-                var audience = "https://your-news.com";
-                var key = Encoding.ASCII.GetBytes(_config.AuthSecret);
-                var tokenDescriptor = new SecurityTokenDescriptor
-                {
-                    Subject = new ClaimsIdentity(new[]
-                    {
-                        new Claim("Id", Guid.NewGuid().ToString()),
-                        new Claim(JwtRegisteredClaimNames.Sub, user.Username),
-                        new Claim(JwtRegisteredClaimNames.Email, user.Username),
-                        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-                    }),
-                    Expires = DateTime.UtcNow.AddMinutes(120),
-                    Issuer = issuer,
-                    Audience = audience,
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha512Signature)
-                };
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var token = tokenHandler.CreateToken(tokenDescriptor);
-                var jwtToken = tokenHandler.WriteToken(token);
-                var stringToken = tokenHandler.WriteToken(token);
-                return Results.Ok(stringToken);
+                return Results.BadRequest("InvalidData");
+            }
+            if (_db.Users.Any(x => x.Username == user.Username && x.Password == user.Password))
+            {
+                string token = generateJwtToken(user.Username, user.Password);
+                return Results.Ok(token);
 
             }
+            // There isn't a username and password that match
             return Results.Unauthorized();
         }
 
@@ -63,7 +48,34 @@ namespace News.Api.Controllers
         {
 
             var usersNamedJohn = _db.Users.Where(user => user.Username == "John");
-            return Results.Ok();
+            return Results.Ok(usersNamedJohn);
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("register")]
+        public IResult Register([FromBody] User user)
+        {
+            if(user == null)
+            {
+                return Results.BadRequest("InvalidData");
+            }
+            if(_db.Users.Any(u => u.Username == user.Username))
+            {
+                return Results.BadRequest("Username already exists");
+            }
+            try
+            {
+                User newUser = new User(user.Username, user.Password);
+                _db.Users.Add(newUser);
+                _db.SaveChanges();
+                string token = generateJwtToken(user.Username, user.Password);
+                return Results.Ok(token);
+            }
+            catch(Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
         }
 
         private bool ValidateToken(string token)
@@ -88,6 +100,32 @@ namespace News.Api.Controllers
                 return true;
             }
             catch (SecurityTokenException) { return false; }
+        }
+        private string generateJwtToken(string username, string password)
+        {
+
+            var issuer = "https://your-news.com";
+            var audience = "https://your-news.com";
+            var key = Encoding.ASCII.GetBytes(_config.AuthSecret);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                        new Claim("Id", Guid.NewGuid().ToString()),
+                        new Claim(JwtRegisteredClaimNames.Sub, username),
+                        new Claim(JwtRegisteredClaimNames.Email, username),
+                        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                    }),
+                Expires = DateTime.UtcNow.AddMinutes(120),
+                Issuer = issuer,
+                Audience = audience,
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha512Signature)
+            };
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var jwtToken = tokenHandler.WriteToken(token);
+            var stringToken = tokenHandler.WriteToken(token);
+            return stringToken;
         }
     }
 }
